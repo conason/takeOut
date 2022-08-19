@@ -53,6 +53,11 @@
       <artifactId>mybatis-plus-boot-starter</artifactId>
       <version>3.4.2</version>
     </dependency>
+    <!--springboot-redis-->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
     <!--lombook-->
     <dependency>
       <groupId>org.projectlombok</groupId>

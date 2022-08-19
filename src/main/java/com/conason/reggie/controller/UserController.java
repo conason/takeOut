@@ -8,6 +8,7 @@ import com.conason.reggie.utils.ValidateCodeUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpSession;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -22,6 +24,9 @@ import java.util.Map;
 public class UserController {
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 验证码发送
@@ -41,7 +46,9 @@ public class UserController {
             //阿里云短信服务
             //SMSUtils.sendMessage("注册审批的标签","",phone,code);
 
-            session.setAttribute(phone,code);
+            // session.setAttribute(phone,code);
+            //将验证码存放到redis
+            redisTemplate.opsForValue().set(phone,code,2, TimeUnit.MINUTES);
 
             Request.success("验证码发送成功");
         }
@@ -60,7 +67,10 @@ public class UserController {
         String phone = map.get("phone").toString();
         String code = map.get("code").toString();
 
-        Object codeInSession = session.getAttribute(phone);
+        //验证码存放在session
+        // Object codeInSession = session.getAttribute(phone);
+        //验证码存放在redis
+        Object codeInSession = redisTemplate.opsForValue().get(phone);
 
         if(codeInSession != null && codeInSession.equals(code)){
             LambdaQueryWrapper<User> userLambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -69,15 +79,16 @@ public class UserController {
             User user = userService.getOne(userLambdaQueryWrapper);
 
             if (user == null){
-                User user1 = new User();
-                user1.setPhone(phone);
-                user1.setStatus(1);
-                userService.save(user1);
-                session.setAttribute("user",user1.getId());
-                return Request.success("登录成功");
+                user= new User();
+                user.setPhone(phone);
+                user.setStatus(1);
+                userService.save(user);
             }
 
             session.setAttribute("user",user.getId());
+
+            //释放redis验证码
+            redisTemplate.delete(phone);
 
             return Request.success("登录成功");
         }
