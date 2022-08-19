@@ -16,7 +16,6 @@ public class RedisConfig extends CachingConfigurerSupport {
         // 默认KEY序列化器为JdkSerializationRedisSerializer
         // 使用字符序列化便于后台查看，后期部署为默认序列化器
         template.setKeySerializer(new StringRedisSerializer());
-        // template.setValueSerializer(new StringRedisSerializer());
         template.setConnectionFactory(redisConnectionFactory);
 
         return template;
